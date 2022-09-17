@@ -56,8 +56,62 @@ def launch(filepath):
     webbrowser.open_new(file_url)
 
 def perform_film_search():
-    pass
-            
+    # Open a new window to display matching films links
+    selected_genres = [genres_listbox.get(i) for i in genres_listbox.curselection()]
+    selected_actors = [actors_listbox.get(i) for i in actors_listbox.curselection()]
+    if not (selected_genres or selected_actors):
+        err_msg = "Please select one or more genres or actors to search by."
+        tk.messagebox.showwarning("Invalid Selection", err_msg)
+    else:
+        filmsets = []
+        filmpaths = {}
+        basepath = genres_folder.get()
+        extensions = {".avi",".mkv",".mp4",".m4v",".xvid",".divx", ".mpeg"}
+        for genre in selected_genres:
+            filmset = set()
+            dirpath = os.path.join(basepath, genre)
+            for p in Path(dirpath).rglob("*"):
+                if p.suffix in extensions:
+                    filmset.add(p.name)
+                    filmpaths[p.name] = str(p.resolve())
+            filmsets.append(filmset)
+        basepath = actors_folder.get()
+        for actor in selected_actors:
+            filmset = set()
+            dirpath = os.path.join(basepath, actor)
+            for p in Path(dirpath).rglob("*"):
+                if p.suffix in extensions:
+                    filmset.add(p.name)
+                    filmpaths[p.name] = str(p.resolve())
+            filmsets.append(filmset)
+        if filter_folder.get():
+            filmset = set()
+            for p in Path(filter_folder.get()).rglob("*"):
+                if p.suffix in extensions:
+                    filmset.add(p.name)
+                    filmpaths[p.name] = str(p.resolve())
+            filmsets.append(filmset)
+        films = sorted(set.intersection(*filmsets))
+        if not films:
+            err_msg = "No films matching your search criteria were found!"
+            tk.messagebox.showwarning("No Matches", err_msg)
+        else:
+            cwin = tk.Toplevel(root)
+            cwin.geometry("480x600")
+            cwin.title(str(len(films)) + " Films Found")
+            R = ttk.Frame(cwin, padding=10)
+            R.grid(row=0,column=0,sticky='nsew')
+
+            header_text = "Genres: " + ", ".join(selected_genres)
+            header_text += "\nActors: " + ", ".join(selected_actors) + "\n"
+            header_label = ttk.Label(R, text=header_text)
+            header_label.grid(row=0, column=0, pady=8, sticky=tk.W)
+
+            for i, f in enumerate(films, start=1):
+                f_label = tk.Label(R, text=f, fg="blue", cursor="hand2")
+                f_label.grid(row=i, column=0, pady=8, sticky=tk.W)
+                f_label.bind("<Button-1>", lambda e, fpath=filmpaths[f]: launch(fpath))
+
 ################################################################################################
 # The main GUI-creation code can be found below.
 
